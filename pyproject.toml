@@ -1,0 +1,14 @@
+[project]
+name = "moviebox-dl"
+version = "0.1.0"
+description = "Download movies using this simple tool"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.3.0",
+    "selenium>=4.36.0",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
