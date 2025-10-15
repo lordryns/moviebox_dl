@@ -3,7 +3,8 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FireFoxOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.alert import Alert 
+from selenium.webdriver.support.ui import WebDriverWait 
+from selenium.webdriver.support import expected_conditions
 import click
 import time, questionary
 import requests 
@@ -17,10 +18,13 @@ def cli():
     pass 
 
 
-def handle_headless(head: bool): 
+def handle_options(head: bool): 
     if driver_options is None:
         click.echo(click.style("Driver not set!", fg="red"))
         return
+
+    driver_options.add_argument("--no-sandbox")
+    driver_options.add_argument("--disable-dev-shm-usage")
     click.echo(f"headless: {not head}")
     if not head:
         driver_options.add_argument("--headless")
@@ -65,12 +69,12 @@ def find(search, browser_id, timeout, head):
         case 0:
             click.echo("Driver: Chrome")
             driver_options = ChromeOptions()
-            handle_headless(head)
+            handle_options(head)
             driver = webdriver.Chrome(options=driver_options)
         case 1:
             click.echo("Driver: Firefox")
             driver_options = FireFoxOptions()
-            handle_headless(head)
+            handle_options(head)
             driver = webdriver.Firefox(options=driver_options)
 
     if driver is None:
@@ -94,7 +98,6 @@ def find(search, browser_id, timeout, head):
             click.echo("{}. {}".format(click.style(count, fg="green"), item.find_element(By.CLASS_NAME, "card-title").text))
             count += 1
         
-        click.echo("Done!")
 
         command = questionary.text("Enter movie index: ").ask()
         item = items[int(command)]
@@ -104,11 +107,19 @@ def find(search, browser_id, timeout, head):
         time.sleep(timeout)
         driver.find_element(By.CLASS_NAME, "watch-btn").click() 
         time.sleep(timeout)
-        driver.execute_script("""
-document.querySelectorAll('a[href^="xdg-open"], a[href^="intent:"], a[href^="vscode:"], a[href^="zoommtg:"]').forEach(a => a.remove());
-""")
         driver.find_element(By.CLASS_NAME, "download-btn-hover").click()
+        click.echo("Looking for available quality...")
+        time.sleep(timeout)
         
+        modal_div_download_modal = WebDriverWait(driver, timeout).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME, "download-option")))
+        quality_list = modal_div_download_modal.find_element(By.CLASS_NAME, "quality-list")
+
+        quality_items = quality_list.find_elements(By.CLASS_NAME, "itm")
+        count = 0
+        for item in quality_items:
+            click.echo(f"{click.style(count, fg="green")}. {item.text}")
+            count += 1
+
     except Exception as e:
         click.echo(e, err=True)
     time.sleep(timeout)
