@@ -9,7 +9,7 @@ import click
 import time, questionary
 import requests 
 
-URL = "https://moviebox.ph/"
+URL = "https://moviebox.ph/web/movie"
 driver_options = None
 
 
@@ -23,8 +23,9 @@ def handle_options(head: bool):
         click.echo(click.style("Driver not set!", fg="red"))
         return
 
-    driver_options.add_argument("--no-sandbox")
-    driver_options.add_argument("--disable-dev-shm-usage")
+    #driver_options.add_argument("--disable-features=ExternalProtocolDialog")
+    #driver_options.add_argument("--no-default-browser-check")
+    #driver_options.add_argument("--disable-external-intent-requests")
     click.echo(f"headless: {not head}")
     if not head:
         driver_options.add_argument("--headless")
@@ -82,6 +83,7 @@ def find(search, browser_id, timeout, head):
         return 
 
     try:
+
         print("Process started. Running...")
         driver.get(URL)
         time.sleep(timeout)
