@@ -23,9 +23,10 @@ def handle_options(head: bool):
         click.echo(click.style("Driver not set!", fg="red"))
         return
 
+    driver_options.add_argument("--disable-external-protocol-request-prompt")
     #driver_options.add_argument("--disable-features=ExternalProtocolDialog")
     #driver_options.add_argument("--no-default-browser-check")
-    #driver_options.add_argument("--disable-external-intent-requests")
+    
     click.echo(f"headless: {not head}")
     if not head:
         driver_options.add_argument("--headless")
@@ -109,7 +110,12 @@ def find(search, browser_id, timeout, head):
         time.sleep(timeout)
         driver.find_element(By.CLASS_NAME, "watch-btn").click() 
         time.sleep(timeout)
-        driver.find_element(By.CLASS_NAME, "download-btn-hover").click()
+        blocking = driver.find_element(By.CSS_SELECTOR, ".video-inner")
+        driver.execute_script("arguments[0].style.pointerEvents='none';", blocking)
+        driver.execute_script("arguments[0].style.opacity=0;", blocking)
+        download_button = driver.find_element(By.CLASS_NAME, "download-btn-hover")
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'})", download_button)
+        download_button.click()
         click.echo("Looking for available quality...")
         time.sleep(timeout)
         
