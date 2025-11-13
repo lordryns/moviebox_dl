@@ -7,23 +7,41 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 import click
 import time, questionary
-import requests 
+import requests, os 
 
 URL = "https://moviebox.ph/web/movie"
 driver_options = None
 
+
+
+def wait_for_download(folder="./download", timeout=30):
+    pass 
 
 @click.group(help="Download movies from Moviebox to your device")
 def cli():
     pass 
 
 
-def handle_options(head: bool): 
+def handle_options(head: bool, browser_id: int): 
     if driver_options is None:
         click.echo(click.style("Driver not set!", fg="red"))
         return
 
     driver_options.add_argument("--disable-external-protocol-request-prompt")
+  
+    if browser_id == 0:
+      prefs = {
+         "download.default_directory": "/path/to/download/folder",
+         "download.prompt_for_download": False,
+         "safebrowsing.enabled": True
+        }
+      driver_options.add_experimental_option("prefs", prefs)
+    elif browser_id == 1:
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference("browser.download.folderList", 2)
+        profile.set_preference("browser.download.dir", "/path/to/download/folder")
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf")  # MIME type
+        profile.set_preference("pdfjs.disabled", True)
     #driver_options.add_argument("--disable-features=ExternalProtocolDialog")
     #driver_options.add_argument("--no-default-browser-check")
     
@@ -71,12 +89,12 @@ def find(search, browser_id, timeout, head):
         case 0:
             click.echo("Driver: Chrome")
             driver_options = ChromeOptions()
-            handle_options(head)
+            handle_options(head, browser_id)
             driver = webdriver.Chrome(options=driver_options)
         case 1:
             click.echo("Driver: Firefox")
             driver_options = FireFoxOptions()
-            handle_options(head)
+            handle_options(head, browser_id)
             driver = webdriver.Firefox(options=driver_options)
 
     if driver is None:
@@ -118,7 +136,7 @@ def find(search, browser_id, timeout, head):
         download_button.click()
         click.echo("Looking for available quality...")
         time.sleep(timeout)
-        
+
         modal_div_download_modal = WebDriverWait(driver, timeout).until(expected_conditions.visibility_of_element_located((By.CLASS_NAME, "download-option")))
         quality_list = modal_div_download_modal.find_element(By.CLASS_NAME, "quality-list")
 
@@ -127,6 +145,12 @@ def find(search, browser_id, timeout, head):
         for item in quality_items:
             click.echo(f"{click.style(count, fg="green")}. {item.text}")
             count += 1
+
+
+        quality = questionary.text("Download quality: ").ask() 
+        quality_item = quality_items[int(quality)]
+        download_size = quality_item.find_element(By.CLASS_NAME, "gb")
+        print(f"Downloading... 0/{download_size.text}")
 
     except Exception as e:
         click.echo(e, err=True)
